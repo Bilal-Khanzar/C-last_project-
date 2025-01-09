@@ -1,0 +1,265 @@
+using System;
+using System.Globalization;
+using System.Net;
+using System.Net.Mail;
+using System.Text.RegularExpressions;
+
+abstract class Kisi
+{
+    protected string isim;
+    protected long telefonNumarasi;
+    protected string tcKimlik;
+
+    public Kisi(string isim, long telefonNumarasi, string tcKimlik)
+    {
+        this.isim = isim;
+        this.telefonNumarasi = telefonNumarasi;
+        this.tcKimlik = tcKimlik;
+    }
+
+    public string Isim
+    {
+        get { return isim; }
+        set { isim = value; }
+    }
+
+    public long TelefonNumarasi
+    {
+        get { return telefonNumarasi; }
+        set { telefonNumarasi = value; }
+    }
+
+    public string TcKimlik
+    {
+        get { return tcKimlik; }
+        set { tcKimlik = value; }
+    }
+
+    public virtual void BilgileriGoster()
+    {
+        Console.WriteLine("İsim: " + isim);
+        Console.WriteLine("Telefon Numarası: " + telefonNumarasi);
+        Console.WriteLine("T.C. Kimlik Numarası: " + tcKimlik);
+    }
+
+    public abstract void SozlesmeTamamlandi();
+}
+
+class Musteri : Kisi
+{
+    private string istenilenEmlakTuru;
+
+    public Musteri(string isim, long telefonNumarasi, string tcKimlik, string istenilenEmlakTuru)
+        : base(isim, telefonNumarasi, tcKimlik)
+    {
+        this.istenilenEmlakTuru = istenilenEmlakTuru;
+    }
+
+    public string IstenilenEmlakTuru
+    {
+        get { return istenilenEmlakTuru; }
+        set { istenilenEmlakTuru = value; }
+    }
+
+    public override void BilgileriGoster()
+    {
+        base.BilgileriGoster();
+        Console.WriteLine("İstenen Emlak Türü: " + istenilenEmlakTuru);
+    }
+
+    public override void SozlesmeTamamlandi()
+    {
+        Console.WriteLine("Müşteri için: Sözleşme tamamlandı.");
+    }
+}
+
+class Emlakci : Kisi
+{
+    public Emlakci(string isim, long telefonNumarasi, string tcKimlik)
+        : base(isim, telefonNumarasi, tcKimlik) { }
+
+    public override void BilgileriGoster()
+    {
+        base.BilgileriGoster();
+    }
+
+    public bool OdemeYap(double odemeTutari, double emlakFiyati)
+    {
+        try
+        {
+            if (odemeTutari >= emlakFiyati)
+            {
+                Console.WriteLine("Ödeme başarıyla tamamlandı.");
+                return true;
+            }
+            else
+            {
+                throw new Exception("Ödeme eksik! Maalesef işlem gerçekleştirilemez.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            return false;
+        }
+    }
+
+    public override void SozlesmeTamamlandi()
+    {
+        Console.WriteLine("Emlakçı için: Sözleşme tamamlandı.");
+    }
+}
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        // Müşteri bilgilerini al
+        Console.WriteLine("Müşteri bilgilerini giriniz:");
+        string musteriIsim = GirisIsimAl();
+
+        long musteriTelefon = GirisTelefonAl();
+
+        string musteriTC = GirisTCKimlikAl();
+
+        string istenilenEmlakTuru = GirisEmlakTuruAl();
+
+        Musteri musteri1 = new Musteri(musteriIsim, musteriTelefon, musteriTC, istenilenEmlakTuru);
+
+        // Emlakçı bilgilerini al
+        Console.WriteLine("\nEmlakçı bilgilerini giriniz:");
+        string emlakciIsim = GirisIsimAl();
+
+        long emlakciTelefon = GirisTelefonAl();
+
+        string emlakciTC = GirisTCKimlikAl();
+
+        Emlakci emlakci1 = new Emlakci(emlakciIsim, emlakciTelefon, emlakciTC);
+
+        // Bilgileri göster
+        Console.WriteLine("\nMüşteri Bilgileri:");
+        musteri1.BilgileriGoster();
+        musteri1.SozlesmeTamamlandi();
+        Console.WriteLine();
+
+        Console.WriteLine("Emlakçı Bilgileri:");
+        emlakci1.BilgileriGoster();
+        emlakci1.SozlesmeTamamlandi();
+
+        // Ödeme işlemi örneği
+        Console.Write("\nEmlak fiyatını giriniz: ");
+        double emlakFiyati = double.Parse(Console.ReadLine(), CultureInfo.InvariantCulture);
+        Console.Write("Ödeme tutarını giriniz: ");
+        double odemeTutari = double.Parse(Console.ReadLine(), CultureInfo.InvariantCulture);
+
+        bool odemeSonucu = emlakci1.OdemeYap(odemeTutari, emlakFiyati);
+        if (odemeSonucu)
+        {
+            Console.WriteLine("İşlem tamamlandı!");
+        }
+        else
+        {
+            Console.WriteLine("İşlem başarısız oldu!");
+        }
+
+        // Sözleşmeyi e-posta ile gönder
+        Console.Write("\nMüşterinin e-posta adresini giriniz: ");
+        string email = Console.ReadLine();
+        SozlesmeGonder(email, musteri1, emlakci1);
+    }
+
+    static string GirisIsimAl()
+    {
+        string isim;
+        while (true)
+        {
+            Console.Write("İsim (sadece harf ve boşluk girilebilir): ");
+            isim = Console.ReadLine();
+
+            if (Regex.IsMatch(isim, @"^[a-zA-Z\s]+$"))
+                break;
+            Console.WriteLine("Hatalı giriş! İsim yalnızca harflerden ve boşluktan oluşabilir.");
+        }
+        return isim;
+    }
+
+    static long GirisTelefonAl()
+    {
+        long telefon;
+        while (true)
+        {
+            Console.Write("Telefon Numarası (10 haneli): ");
+            if (long.TryParse(Console.ReadLine(), out telefon) && telefon.ToString().Length == 10)
+                break;
+            Console.WriteLine("Hatalı giriş! Telefon numarası 10 haneli olmalıdır.");
+        }
+        return telefon;
+    }
+
+    static string GirisTCKimlikAl()
+    {
+        string tcKimlik;
+        while (true)
+        {
+            Console.Write("T.C. Kimlik Numarası (11 haneli): ");
+            tcKimlik = Console.ReadLine();
+            if (long.TryParse(tcKimlik, out _) && tcKimlik.Length == 11)
+                break;
+            Console.WriteLine("Hatalı giriş! T.C. Kimlik numarası 11 haneli olmalıdır.");
+        }
+        return tcKimlik;
+    }
+
+    static string GirisEmlakTuruAl()
+    {
+        string emlakTuru;
+        while (true)
+        {
+            Console.Write("İstenen Emlak Türü (Daire, Villa, Apartman): ");
+            emlakTuru = Console.ReadLine();
+            if (emlakTuru.Equals("Daire", StringComparison.OrdinalIgnoreCase) ||
+                emlakTuru.Equals("Villa", StringComparison.OrdinalIgnoreCase) ||
+                emlakTuru.Equals("Apartman", StringComparison.OrdinalIgnoreCase))
+                break;
+            Console.WriteLine("Hatalı giriş! Emlak türü sadece 'Daire', 'Villa' veya 'Apartman' olabilir.");
+        }
+        return emlakTuru;
+    }
+
+    // Sözleşme gönderme fonksiyonu
+    static void SozlesmeGonder(string email, Musteri musteri, Emlakci emlakci)
+    {
+        string konu = "Emlak Sözleşmesi";
+        string icerik = $"Sözleşme Detayları: sozlesmeyi kabul ettiginiz icin tesekkur ederiz\n" +
+                         $"sizinde bu daireyapim projeyi cok yakinda baslayacagiz sartlarimiz kabul edilmistir ve bu projeyi siz onay verdiniz  \n\n" +
+                         $"Müşteri Bilgileri:\n" +
+                         $"İsim: {musteri.Isim}\nTelefon: {musteri.TelefonNumarasi}\nT.C. Kimlik: {musteri.TcKimlik}\nEmlak Türü: {musteri.IstenilenEmlakTuru}\n\n" +
+                         $"Emlakçı Bilgileri:\n" +
+                         $"İsim: {emlakci.Isim}\nTelefon: {emlakci.TelefonNumarasi}\nT.C. Kimlik: {emlakci.TcKimlik}\n";
+
+        try
+        {
+            SmtpClient smtpClient = new SmtpClient("smtp.gmail.com")
+            {
+                Port = 587,
+                Credentials = new NetworkCredential("bilalkhanzer985@gmail.com", "tikm lxrj ahns jnzk"),
+                EnableSsl = true
+            };
+
+            MailMessage mail = new MailMessage
+            {
+                From = new MailAddress("bilalkhanzer985@gmail.com"),
+                Subject = konu,
+                Body = icerik
+            };
+            mail.To.Add(email);
+
+            smtpClient.Send(mail);
+            Console.WriteLine("Sözleşme e-posta ile gönderildi.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("E-posta gönderiminde bir hata oluştu: " + ex.Message);
+        }
+    }
+}
